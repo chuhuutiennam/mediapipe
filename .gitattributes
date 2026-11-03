@@ -1,0 +1,2 @@
+# Shell scripts run on Linux (RHEL 8): always keep LF, even on Windows checkouts
+*.sh text eol=lf
