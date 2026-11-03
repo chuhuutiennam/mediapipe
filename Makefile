@@ -5,7 +5,7 @@
 install:
 	pip install -e ".[dev]"
 
-## Run the worker (GPU delegate, default address)
+## Run the worker (delegate from config, default auto: try GPU, fall back to CPU)
 run:
 	python -m mediapipe_video --model checkpoint/selfie_segmenter.tflite
 
