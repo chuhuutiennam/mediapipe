@@ -2,6 +2,8 @@
 
 Python gRPC microservice thực hiện **video background segmentation** theo thời gian thực bằng [MediaPipe ImageSegmenter](https://ai.google.dev/edge/mediapipe/solutions/vision/image_segmenter). Nhận JPEG frame từ gateway, trả về binary mask dạng RLE để gateway áp dụng hiệu ứng `bg_blur`, `bg_replace`, hoặc `bg_remove`.
 
+**Source code:** https://github.com/chuhuutiennam/mediapipe
+
 ## Yêu cầu
 
 - Python 3.10+
@@ -11,6 +13,9 @@ Python gRPC microservice thực hiện **video background segmentation** theo th
 ## Cài đặt
 
 ```bash
+git clone https://github.com/chuhuutiennam/mediapipe.git
+cd mediapipe
+
 python -m venv .venv
 .venv\Scripts\activate        # Windows
 # hoặc: source .venv/bin/activate  # Linux/macOS
@@ -95,7 +100,7 @@ mediapipe/
 │   └── test_segmenter.py       # Tests cho Worker.Segment() end-to-end
 │
 ├── checkpoint/
-│   └── selfie_segmenter.tflite   # (không commit — xem .gitignore)
+│   └── selfie_segmenter.tflite   # model mặc định (~244KB, có trong repo)
 │
 └── docs/
     ├── architecture.md
