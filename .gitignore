@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environment
+.venv/
+
+# Build / packaging
+*.egg-info/
+dist/
+build/
+
+# Tool caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Model files: .tflite is small (~244KB) and committed; .task bundles stay out
+checkpoint/*.task
+
+# Source archives
+*.zip
+
+# Runtime logs
+logs/*.log
+
+# IDE
+.idea/
+.vscode/
