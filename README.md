@@ -36,25 +36,36 @@ python -m mediapipe_video --model checkpoint/selfie_segmenter.tflite
 ```
 
 ```bash
-make run        # GPU (default)
-make run-cpu    # CPU, không cần GPU
+make run        # delegate theo config (mặc định auto: thử GPU, lỗi thì chuyển CPU)
+make run-cpu    # ép CPU, không cần GPU
 ```
+
+### Cấu hình
+
+Nếu thư mục đang chạy có `etc/config.yaml` thì file này được tự load. Thứ tự ưu tiên:
+**CLI flag > file config** (`--config` hoặc `etc/config.yaml`) **> giá trị mặc định trong code**.
+Ý nghĩa từng key xem chú thích trong [`etc/config.yaml`](etc/config.yaml).
 
 ### Tất cả options
 
 ```
+--config PATH            File YAML config (default: etc/config.yaml nếu có)
 --addr ADDR              Địa chỉ bind gRPC server (default: 127.0.0.1:50052)
---model PATH             Đường dẫn TFLite model [bắt buộc]
+--model PATH             Đường dẫn TFLite model [bắt buộc — qua flag hoặc mediapipe.model]
 --foreground-index INT   Index foreground plane trong confidence_masks
                          (default: tự detect — 0 nếu 1 plane, 1 nếu 2 planes)
+--gpu-device-index INT   GPU dùng để chạy, set CUDA_VISIBLE_DEVICES
+                         (default: GPU mặc định của hệ thống)
 --max-streams INT        Số concurrent stream tối đa (default: 8)
---delegate {gpu,cpu}     Compute backend (default: gpu)
+--delegate MODE          gpu | cpu | auto (default: auto — thử GPU, lỗi thì chuyển CPU)
 --result-timeout FLOAT   Giây timeout chờ MediaPipe callback mỗi frame (default: 10.0)
+--log-level LEVEL        DEBUG | INFO | WARNING | ERROR (default: INFO)
 ```
 
-Khi sẵn sàng, worker in ra stdout:
+Log dạng JSON, in ra stdout và ghi vào `logs/mediapipe-video.log` (đổi bằng `logging.file`,
+rotate hằng ngày). Khi sẵn sàng sẽ có dòng:
 ```json
-{"event": "ready", "addr": "127.0.0.1:50052", "model": "checkpoint/selfie_segmenter.tflite", "mediapipe": "1.0.1", "running_mode": "LIVE_STREAM", "delegate": "gpu"}
+{"timestamp": "...", "level": "INFO", "logger": "mediapipe_video.server", "source": "server.py:...", "message": "server ready  addr=127.0.0.1:50052  model=checkpoint/selfie_segmenter.tflite  mediapipe=<version>  delegate=gpu"}
 ```
 
 Dừng bằng `Ctrl+C` — graceful shutdown trong 2 giây.
@@ -83,16 +94,30 @@ mediapipe/
 ├── Makefile                    # Shortcut commands
 ├── README.md
 │
+├── etc/
+│   └── config.yaml             # Config runtime: server, mediapipe, segmentation, logging, metrics
+│
+├── scripts/                    # Script triển khai trên server Linux
+│   ├── check.sh                # Pre-flight check trước khi cài / nâng cấp / chạy
+│   ├── install.sh              # Cài đặt đầy đủ vào APP_DIR (hỗ trợ --offline)
+│   ├── upgrade.sh              # Nâng cấp lên source mới
+│   ├── start.sh                # Start service
+│   └── stop.sh                 # Stop service (SIGTERM, quá hạn thì SIGKILL)
+│
 ├── src/
 │   ├── proto/
 │   │   └── video.proto         # gRPC contract (shared với Gateway)
 │   └── mediapipe_video/        # Python package chính
 │       ├── __init__.py
 │       ├── __main__.py         # python -m mediapipe_video entry point
-│       ├── contract.py         # Compile src/proto/video.proto → video_pb2
+│       ├── contract.py         # Compile video.proto (bản trong package) → video_pb2
 │       ├── codec.py            # encode_rle(), threshold_mask()
 │       ├── segmenter.py        # class Worker + gRPC stream handler
-│       └── server.py           # main() + gRPC server bootstrap
+│       ├── server.py           # main(): CLI, load config, gRPC server bootstrap
+│       ├── config.py           # Dataclass config + YAML loader
+│       ├── log.py              # JSON log formatter, rotate file theo ngày
+│       ├── metrics.py          # Prometheus metrics + log snapshot định kỳ
+│       └── video.proto         # Bản copy của src/proto/video.proto, đóng gói vào wheel
 │
 ├── tests/
 │   ├── conftest.py             # Shared fixtures và test helpers
@@ -102,9 +127,14 @@ mediapipe/
 ├── checkpoint/
 │   └── selfie_segmenter.tflite   # model mặc định (~244KB, có trong repo)
 │
+├── wheels/                     # Wheel cho cài offline (install.sh --offline)
+├── logs/                       # Log runtime (file .log không commit)
+│
 └── docs/
+    ├── deployment.md
     ├── architecture.md
-    └── technical.md
+    ├── technical.md
+    └── metrics.md
 ```
 
 ## Giao tiếp với Gateway
@@ -128,3 +158,4 @@ Chi tiết đầy đủ: [`docs/technical.md`](docs/technical.md).
 | [`docs/deployment.md`](docs/deployment.md) | Cài đặt, cấu hình, start/stop, nâng cấp, log, xử lý lỗi |
 | [`docs/architecture.md`](docs/architecture.md) | Architecture diagram, module diagram, call flow, sequence diagram |
 | [`docs/technical.md`](docs/technical.md) | API, class, interface, thread model, memory model, event model |
+| [`docs/metrics.md`](docs/metrics.md) | Prometheus metrics, query mẫu, alert, giám sát |
